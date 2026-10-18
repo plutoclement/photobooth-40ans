@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14110f">
-<!-- Sécurité : seules la page elle-même et Google Fonts sont autorisées ; rien n'est envoyé à un serveur -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; media-src 'self' blob: mediastream:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<!-- Sécurité : seules la page, Google Fonts et le relais d'envoi des photos (Cloudflare) sont autorisés -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; media-src 'self' blob: mediastream:; connect-src 'self' https://*.workers.dev; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>Photobooth d'Auré</title>
@@ -63,20 +63,24 @@
   .declencheur:disabled { opacity: .4; }
   .lien { background: none; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; align-self: center; padding: 6px; }
 
-  .apercu { width: 100%; height: auto; border-radius: 10px; display: block; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-  .reglage { display: grid; gap: 8px; }
+  #config.on { height: calc(100svh - max(16px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom))); min-height: 0; gap: 12px; }
+  .scene { flex: 1 1 0; min-height: 0; }
+  .apercu { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .reglage { display: grid; gap: 6px; }
   .reglage label, .titre-reglage { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; color: var(--muted); }
   .reglage output { font-family: var(--hand); font-size: 1.8rem; color: var(--accent); line-height: 1; }
   input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
-  .styles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .styles { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px; }
+  .styles::-webkit-scrollbar { display: none; }
   .styles button { font: inherit; font-size: .98rem; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line);
-                   background: transparent; color: var(--ink); cursor: pointer; }
+                   background: transparent; color: var(--ink); cursor: pointer; flex: none; white-space: nowrap; }
   .styles button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 800; }
   input[type=text] { font: inherit; font-size: 1.05rem; width: 100%; padding: 12px 14px; border-radius: 12px;
                      border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); }
   .resultat { width: 100%; border-radius: 10px; display: block; box-shadow: 0 10px 30px rgba(0,0,0,.5);
               -webkit-touch-callout: default; }
   .astuce { font-size: .92rem; color: var(--muted); text-align: center; }
+  .envoi { font-family: var(--hand); font-size: 1.3rem; color: var(--accent); text-align: center; min-height: 1.4em; }
 </style>
 </head>
 <body>
@@ -91,6 +95,7 @@
       <li><b>2</b> Choisis ton Auré : son âge et son style</li>
       <li><b>3</b> Partage ta photo souvenir</li>
     </ol>
+    <p class="astuce">Chaque photo créée rejoint aussi l'album souvenir des 40 ans (visible seulement par les organisateurs).</p>
     <div class="pousse"><button class="bouton" id="commencer">C'est parti !</button></div>
   </section>
 
@@ -121,7 +126,7 @@
 
   <!-- 3. Configurer Auré -->
   <section class="ecran" id="config">
-    <canvas class="apercu" width="1080" height="1350"></canvas>
+    <div class="scene"><canvas class="apercu" width="640" height="960" aria-label="Auré"></canvas></div>
     <div class="reglage">
       <label for="age">Âge d'Auré <output id="ageTxt"></output></label>
       <input type="range" id="age" min="0" max="70" step="0.2" value="40">
@@ -134,23 +139,18 @@
       <label for="prenom">Ton prénom (facultatif)</label>
       <input type="text" id="prenom" maxlength="24" autocomplete="given-name" placeholder="ex. Claire">
     </div>
-    <div class="pousse">
-      <button class="bouton" id="creer">Créer mon image</button>
-      <button class="lien" id="autreSelfie">Reprendre le selfie</button>
-    </div>
+    <button class="bouton" id="creer">Créer mon image</button>
   </section>
 
   <!-- 4. Résultat -->
   <section class="ecran" id="resultat">
     <img class="resultat" alt="Ta photo avec Auré">
+    <p class="envoi" id="envoi"></p>
     <div class="pousse">
       <button class="bouton" id="partager">Partager</button>
       <a class="bouton second" id="telecharger" download="40-ans-aure.jpg">Enregistrer l'image</a>
       <p class="astuce">Si rien ne se passe : appui long sur l'image, puis « Enregistrer » ou « Partager ».</p>
-      <div class="rangee">
-        <button class="bouton second" id="retoucher">Modifier Auré</button>
-        <button class="bouton second" id="encore">Nouvelle photo</button>
-      </div>
+      <button class="bouton second" id="encore">Nouvelle photo</button>
     </div>
   </section>
 </main>
@@ -518,7 +518,13 @@ let enAttente = false;
 function rafraichir() {
   if (enAttente || !$("#config").classList.contains("on")) return;
   enAttente = true;
-  requestAnimationFrame(() => { enAttente = false; composer(apercu); });
+  requestAnimationFrame(() => {
+    enAttente = false;
+    // Aperçu : Auré seul, cadré avec ses accessoires (chapeau, raquette, ballon)
+    const c = apercu.getContext("2d");
+    c.clearRect(0, 0, apercu.width, apercu.height);
+    c.save(); c.translate(20, 80); dessinerPerso(c, +$("#age").value, styleChoisi); c.restore();
+  });
 }
 function majAge() {
   const age = +$("#age").value, a = Math.floor(age);
@@ -526,13 +532,13 @@ function majAge() {
   rafraichir();
 }
 $("#age").addEventListener("input", majAge);
-$("#prenom").addEventListener("input", rafraichir);
 for (const [cle, s] of Object.entries(STYLES)) {
   const b = document.createElement("button");
   b.textContent = s.nom; b.setAttribute("aria-pressed", cle === styleChoisi);
   b.onclick = () => {
     styleChoisi = cle;
     document.querySelectorAll("#styles button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    b.scrollIntoView({ block: "nearest", inline: "nearest" });
     rafraichir();
   };
   $("#styles").appendChild(b);
@@ -542,7 +548,10 @@ for (const [cle, s] of Object.entries(STYLES)) {
   const cles = Object.keys(STYLES), k = Math.floor(Math.random() * cles.length);
   document.querySelectorAll("#styles button")[k].click();
 }
-function ouvrirConfig() { aller("config"); majAge(); }
+function ouvrirConfig() {
+  aller("config"); majAge();
+  $("#styles [aria-pressed=true]").scrollIntoView({ block: "nearest", inline: "center" });
+}
 
 // ---------- Selfie ----------
 const video = $("#selfie video"), figee = $("#selfie img"), info = $("#selfie .info");
@@ -597,16 +606,39 @@ $("#fichier").onchange = e => {
 $("#refaire").onclick = demarrerCamera;
 $("#valider").onclick = () => { arreterCamera(); ouvrirConfig(); };
 $("#commencer").onclick = () => { aller("selfie"); demarrerCamera(); };
-$("#autreSelfie").onclick = () => { aller("selfie"); demarrerCamera(); };
 
-// ---------- Résultat et partage ----------
+// ---------- Création, envoi à l'album et partage ----------
+// Relais Cloudflare qui range les photos dans un dépôt GitHub privé (voir envoi_photos/ dans le projet).
+// Il n'accepte que l'ajout d'images : impossible de lire l'album depuis cette page.
+const ENVOI_URL = "https://photobooth-40ans.photobooth-40ans-envoi.workers.dev/photo";
+
+async function envoyerALalbum(blob, prenom) {
+  if (!ENVOI_URL) return false;
+  for (let essai = 0; essai < 3; essai++) {
+    try {
+      const r = await fetch(ENVOI_URL, {
+        method: "POST", body: blob,
+        headers: { "Content-Type": "image/jpeg", "X-Prenom": encodeURIComponent(prenom) },
+        signal: AbortSignal.timeout(20000),
+      });
+      if (r.ok) return true;
+      if (r.status < 500 && r.status !== 429) return false;   // refus définitif : inutile d'insister
+    } catch (e) { /* réseau capricieux : on réessaie */ }
+    await new Promise(r => setTimeout(r, 1500 * (essai + 1)));
+  }
+  return false;
+}
+
 let fichier = null;
 $("#creer").onclick = async () => {
+  const bouton = $("#creer");
+  bouton.disabled = true; bouton.textContent = "Création…";
   const cv = document.createElement("canvas"); cv.width = 1080; cv.height = 1350;
   composer(cv);
   let blob;
   try { blob = await new Promise(r => cv.toBlob(r, "image/jpeg", .9)); }
   catch (e) {
+    bouton.disabled = false; bouton.textContent = "Créer mon image";
     // Page ouverte depuis le disque (file://) : le navigateur interdit l'export du canvas
     return alert(location.protocol === "file:"
       ? "Impossible de créer l'image quand la page est ouverte directement depuis le disque. Ouvre-la via un serveur (voir LISEZMOI.md) ou depuis son adresse en ligne."
@@ -617,13 +649,17 @@ $("#creer").onclick = async () => {
   $(".resultat").src = url; $("#telecharger").href = url;
   $("#partager").hidden = !(navigator.canShare && navigator.canShare({ files: [fichier] }));
   aller("resultat");
+  bouton.disabled = false; bouton.textContent = "Créer mon image";
+  const etat = $("#envoi");
+  etat.textContent = ENVOI_URL ? "Envoi à l'album souvenir…" : "";
+  if (ENVOI_URL) etat.textContent = await envoyerALalbum(blob, $("#prenom").value.trim())
+    ? "✓ Ta photo a rejoint l'album souvenir d'Auré" : "L'album n'a pas pu recevoir ta photo, mais tu peux la garder et la partager.";
 };
 $("#partager").onclick = async () => {
   try { await navigator.share({ files: [fichier], title: "Les 40 ans d'Auré", text: "Les 40 ans d'Auré · 24 octobre 2026 🎉" }); }
   catch (e) { /* partage annulé */ }
 };
-$("#retoucher").onclick = ouvrirConfig;
-$("#encore").onclick = () => { selfie = null; aller("selfie"); demarrerCamera(); };
+$("#encore").onclick = () => { selfie = null; $("#prenom").value = ""; aller("selfie"); demarrerCamera(); };
 
 // Les polices doivent être chargées avant de dessiner dans le canvas
 Promise.all(["800 40px Fraunces", "700 40px Caveat"].map(f => document.fonts.load(f))).then(rafraichir, rafraichir);

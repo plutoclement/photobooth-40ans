@@ -6,8 +6,9 @@ Page web autonome (rien à installer sur les téléphones) : selfie → Auré à
 - `morphing/` : copie de `diaporama/morphing/` (visages de 0 à 70 ans). À recopier si le morphing est régénéré.
 
 ## Confidentialité
-Tout se passe dans le téléphone : le selfie n'est envoyé à aucun serveur et rien n'est enregistré en ligne.
-La page demande aux moteurs de recherche de ne pas l'indexer (`robots.txt` et balise `noindex`).
+Le selfie seul ne quitte jamais le téléphone. L'image finale créée est envoyée à l'album souvenir privé
+(dépôt GitHub `photobooth-40ans-photos`) via un relais qui ne sait qu'ajouter des images : voir `envoi_photos/LISEZMOI.md`.
+L'accueil de la page prévient les invités. La page demande aux moteurs de recherche de ne pas l'indexer (`robots.txt` et balise `noindex`).
 
 ## Mise en ligne
 La caméra du téléphone n'est accessible qu'en **HTTPS**, d'où l'hébergement sur GitHub Pages.
