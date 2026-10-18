@@ -67,16 +67,26 @@
   .scene { flex: 1 1 0; min-height: 0; }
   .apercu { width: 100%; height: 100%; object-fit: contain; display: block; }
   .reglage { display: grid; gap: 6px; }
-  .reglage label, .titre-reglage { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; color: var(--muted); }
+  .reglage label { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; color: var(--muted); }
   .reglage output { font-family: var(--hand); font-size: 1.8rem; color: var(--accent); line-height: 1; }
   input[type=range] { width: 100%; accent-color: var(--accent); height: 32px; }
-  .styles { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px; }
-  .styles::-webkit-scrollbar { display: none; }
-  .styles button { font: inherit; font-size: .98rem; padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line);
+  .styles { display: flex; flex-wrap: wrap; gap: 6px; }
+  .styles button { font: inherit; font-size: .92rem; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--line);
                    background: transparent; color: var(--ink); cursor: pointer; flex: none; white-space: nowrap; }
   .styles button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 800; }
-  input[type=text] { font: inherit; font-size: 1.05rem; width: 100%; padding: 12px 14px; border-radius: 12px;
+  input[type=text], textarea { font: inherit; font-size: 1.05rem; width: 100%; padding: 12px 14px; border-radius: 12px;
                      border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); }
+  textarea { resize: none; display: block; line-height: 1.3; }
+  .champ { position: relative; }
+  .compteur { position: absolute; right: 12px; top: -.6em; padding: 0 5px; background: var(--bg); font-size: .75rem; color: var(--muted); pointer-events: none; }
+  @media (max-height: 620px) {
+    #config.on { gap: 7px; }
+    .styles { gap: 5px; }
+    .styles button { padding: 5px 9px; font-size: .85rem; }
+    #config .bouton { padding: 12px 18px; }
+    #config input[type=text], #config textarea { padding: 8px 12px; }
+    .reglage output { font-size: 1.5rem; }
+  }
   .resultat { width: 100%; border-radius: 10px; display: block; box-shadow: 0 10px 30px rgba(0,0,0,.5);
               -webkit-touch-callout: default; }
   .astuce { font-size: .92rem; color: var(--muted); text-align: center; }
@@ -131,13 +141,11 @@
       <label for="age">Âge d'Auré <output id="ageTxt"></output></label>
       <input type="range" id="age" min="0" max="70" step="0.2" value="40">
     </div>
-    <div class="reglage">
-      <div class="titre-reglage">Style</div>
-      <div class="styles" id="styles"></div>
-    </div>
-    <div class="reglage">
-      <label for="prenom">Ton prénom (facultatif)</label>
-      <input type="text" id="prenom" maxlength="24" autocomplete="given-name" placeholder="ex. Claire">
+    <div class="styles" id="styles" role="group" aria-label="Style d'Auré"></div>
+    <input type="text" id="prenom" maxlength="24" autocomplete="given-name" placeholder="Ton prénom (facultatif)" aria-label="Ton prénom">
+    <div class="champ">
+      <textarea id="mot" rows="2" maxlength="140" placeholder="Un mot pour Auré ? (facultatif)" aria-label="Un mot pour Auré"></textarea>
+      <span class="compteur" id="compteur"></span>
     </div>
     <button class="bouton" id="creer">Créer mon image</button>
   </section>
@@ -263,7 +271,7 @@ function confettisAutour(c, n, graine, yMax = 1e9) {
 
 const STYLES = {
   rugby: {
-    nom: "🏉 Rugby", bulle: "Passe-la au 9 !",
+    nom: "🏉 Rugby",
     corps(c) {
       jambes(c, { pantalon: "#fbf6ee", court: true, chaussette: "#c8102e", rayures: "#1d1d1d", chaussure: "#1d1d1d" });
       torse(c, "#c8102e", 0, () => { c.fillStyle = "#1d1d1d"; for (let y = 400; y < 640; y += 64) c.fillRect(150, y, 300, 32); });
@@ -281,7 +289,7 @@ const STYLES = {
     },
   },
   badminton: {
-    nom: "🏸 Badminton", bulle: "Il était dedans, ce volant !",
+    nom: "🏸 Badminton",
     corps(c) {
       jambes(c, { pantalon: "#1f3a68", court: true, chaussette: "#fbf6ee", chaussure: "#fbf6ee" });
       torse(c, "#fbf6ee", 0, () => { c.fillStyle = "#2f7fd8"; c.beginPath(); c.moveTo(150, 520); c.lineTo(450, 440); c.lineTo(450, 480); c.lineTo(150, 560); c.fill(); });
@@ -306,7 +314,7 @@ const STYLES = {
     },
   },
   daron: {
-    nom: "🧺 Daron", bulle: "Bon, on y va au marché ?",
+    nom: "🧺 Daron",
     corps(c) {
       jambes(c, { pantalon: "#d9c39a", court: true, chaussette: "#fbf6ee", chaussure: "#7a4b2a" });
       torse(c, "#2f7d5b", 34);
@@ -337,7 +345,7 @@ const STYLES = {
     },
   },
   soiree: {
-    nom: "🥂 Soirée", bulle: "Tournée générale !",
+    nom: "🥂 Soirée",
     corps(c) {
       confettisAutour(c, 26, 7);
       jambes(c, { pantalon: "#1d1d1d", chaussure: "#0d0d0d" });
@@ -348,9 +356,9 @@ const STYLES = {
       forme(c, "#f2b33d", () => ovale(c, 300, 396, 10, 10), 4);
       // ballon « 40 » à droite, coupe de champagne à gauche
       bras(c, [408, 405], [480, 400], [462, 312], "#6b1f3a");
-      c.strokeStyle = T; c.lineWidth = 3; c.beginPath(); c.moveTo(462, 312); c.quadraticCurveTo(500, 260, 535, 245); c.stroke();
+      c.strokeStyle = T; c.lineWidth = 3; c.beginPath(); c.moveTo(462, 312); c.quadraticCurveTo(490, 270, 505, 250); c.stroke();
       c.font = "800 120px Fraunces, Georgia, serif"; c.textAlign = "center"; c.lineJoin = "round";
-      c.lineWidth = 12; c.strokeStyle = T; c.strokeText("40", 535, 245); c.fillStyle = "#f2b33d"; c.fillText("40", 535, 245);
+      c.lineWidth = 12; c.strokeStyle = T; c.strokeText("40", 505, 250); c.fillStyle = "#f2b33d"; c.fillText("40", 505, 250);
       main_(c, 462, 312);
       bras(c, [192, 405], [140, 500], [175, 545], "#6b1f3a");
       c.lineWidth = 5; c.strokeStyle = T; c.beginPath(); c.moveTo(175, 560); c.lineTo(175, 480); c.stroke();
@@ -368,7 +376,7 @@ const STYLES = {
     },
   },
   gendre: {
-    nom: "💐 Gendre idéal", bulle: "Je vous ai apporté des fleurs !",
+    nom: "💐 Gendre idéal",
     corps(c) {
       for (const [x, y, r] of [[90, 140, 22], [520, 220, 16], [70, 420, 14], [535, 520, 20], [120, 700, 12]]) etoile(c, x, y, r, "#f2b33d");
       jambes(c, { pantalon: "#1f2d4d", chaussure: "#0d0d0d" });
@@ -387,7 +395,7 @@ const STYLES = {
     },
   },
   gamer: {
-    nom: "🎮 Gamer", bulle: "Encore une partie et j'arrive !",
+    nom: "🎮 Gamer",
     corps(c) {
       jambes(c, { pantalon: "#55595f", chaussure: "#c8102e" });
       forme(c, "#3b3f4a", () => { c.moveTo(210, 395); c.quadraticCurveTo(300, 330, 390, 395); c.quadraticCurveTo(300, 360, 210, 395); });
@@ -416,7 +424,7 @@ const STYLES = {
     },
   },
   aveyron: {
-    nom: "🧀 Aveyronnais", bulle: "L'aligot, ça se file !",
+    nom: "🧀 Aveyronnais",
     corps(c) {
       jambes(c, { pantalon: "#6b4a2b", chaussure: "#3a2414" });
       torse(c, "#2e5a8a", 6, () => { c.strokeStyle = "rgba(255,255,255,.18)"; c.lineWidth = 3; for (let x = 160; x < 450; x += 22) { c.beginPath(); c.moveTo(x, 360); c.lineTo(x, 640); c.stroke(); } });
@@ -461,22 +469,41 @@ function dessinerPerso(c, age, style) {
   return 372 + (840 - 372) * b;   // ordonnée des pieds
 }
 
-function bulle(c, x, y, w, texte, pointe) {
-  c.font = "700 46px Caveat, cursive";
-  const mots = texte.split(" "), lignes = [""];
-  for (const m of mots) { const l = (lignes.at(-1) + " " + m).trim(); if (c.measureText(l).width > w - 50 && lignes.at(-1)) lignes.push(m); else lignes[lignes.length - 1] = l; }
-  const h = 30 + lignes.length * 48;
-  forme(c, "#fffdf8", () => { rect(c, x, y, w, h, 28); }, 5);
-  forme(c, "#fffdf8", () => { c.moveTo(pointe[0] - 26, y + h - 3); c.lineTo(...pointe); c.lineTo(pointe[0] + 14, y + h - 3); }, 5);
-  c.fillStyle = "#fffdf8"; c.fillRect(pointe[0] - 23, y + h - 9, 34, 8);
+function couper(c, texte, largeur) {
+  const lignes = [""];
+  // Un mot trop long pour une ligne est coupé en morceaux
+  const mots = texte.split(/\s+/).flatMap(m => {
+    const morceaux = [""];
+    for (const ch of m) { if (c.measureText(morceaux.at(-1) + ch).width > largeur) morceaux.push(ch); else morceaux[morceaux.length - 1] += ch; }
+    return morceaux;
+  });
+  for (const m of mots) {
+    const l = (lignes.at(-1) + " " + m).trim();
+    if (c.measureText(l).width > largeur && lignes.at(-1)) lignes.push(m); else lignes[lignes.length - 1] = l;
+  }
+  return lignes;
+}
+// Bulle du message des invités : la pointe monte vers le polaroïd, le texte rétrécit si le message est long
+function bulle(c, centre, y, wMax, hMax, texte, pointe) {
+  let taille = 52, lignes;
+  do { c.font = `700 ${taille}px Caveat, cursive`; lignes = couper(c, texte, wMax - 56); taille -= 2; }
+  while (lignes.length * taille * 1.08 + 40 > hMax && taille > 30);
+  taille += 2;
+  // Largeur ajustée au texte, bulle centrée sous le polaroïd
+  const w = Math.max(160, Math.min(wMax, Math.max(...lignes.map(l => c.measureText(l).width)) + 64));
+  const x = Math.max(40, centre - w / 2);
+  const pas = taille * 1.08, h = lignes.length * pas + 40;
+  forme(c, "#fffdf8", () => rect(c, x, y, w, h, 28), 5);
+  forme(c, "#fffdf8", () => { c.moveTo(pointe[0] - 22, y + 3); c.lineTo(...pointe); c.lineTo(pointe[0] + 22, y + 3); }, 5);
+  c.fillStyle = "#fffdf8"; c.fillRect(pointe[0] - 19, y + 1, 38, 8);
   c.fillStyle = T; c.textAlign = "center"; c.textBaseline = "middle";
-  lignes.forEach((l, k) => c.fillText(l, x + w / 2, y + 40 + k * 48));
+  lignes.forEach((l, k) => c.fillText(l, x + w / 2, y + 20 + pas * (k + .5)));
   c.textBaseline = "alphabetic";
 }
 
 function composer(cv) {
   const c = cv.getContext("2d"), W = 1080, H = 1350;
-  const age = +$("#age").value, st = STYLES[styleChoisi];
+  const age = +$("#age").value;
   const fond = c.createRadialGradient(540, 520, 80, 540, 600, 900);
   fond.addColorStop(0, "#3a2c20"); fond.addColorStop(1, "#14110f");
   c.fillStyle = fond; c.fillRect(0, 0, W, H);
@@ -488,12 +515,15 @@ function composer(cv) {
   c.fillStyle = "#fffdf8"; c.fillRect(0, 0, 640, 760); c.shadowColor = "transparent";
   if (selfie) c.drawImage(selfie, 30, 30, 580, 580); else { c.fillStyle = "#ccc"; c.fillRect(30, 30, 580, 580); }
   const prenom = $("#prenom").value.trim();
-  c.fillStyle = T; c.font = "700 56px Caveat, cursive"; c.textAlign = "center";
-  c.fillText(prenom ? prenom + " & Auré" : "Avec Auré", 320, 686);
+  const legende = prenom ? prenom + " & Auré" : "Avec Auré";
+  let taille = 56;
+  do { c.font = `700 ${taille}px Caveat, cursive`; taille -= 2; } while (c.measureText(legende).width > 560 && taille > 28);
+  c.fillStyle = T; c.textAlign = "center";
+  c.fillText(legende, 320, 686);
   c.restore();
 
   // Auré
-  const ech = .95, ox = 480, oy = 330;
+  const ech = .86, ox = 562, oy = 400;
   c.save(); c.translate(ox, oy); c.scale(ech, ech);
   const pieds = dessinerPerso(c, age, styleChoisi);
   c.restore();
@@ -501,7 +531,8 @@ function composer(cv) {
   // l'ombre passe sous les pieds : on redessine le perso par-dessus
   c.save(); c.translate(ox, oy); c.scale(ech, ech); dessinerPerso(c, age, styleChoisi); c.restore();
 
-  bulle(c, 680, 110, 370, st.bulle, [ox + 250 * ech, oy + 40 * ech]);
+  const mot = $("#mot").value.replace(/\s+/g, " ").trim();
+  if (mot) bulle(c, 320, 866, 540, 268, mot, [300, 822]);
 
   // Légende
   c.textAlign = "center";
@@ -532,13 +563,16 @@ function majAge() {
   rafraichir();
 }
 $("#age").addEventListener("input", majAge);
+$("#mot").addEventListener("input", () => {
+  const n = $("#mot").value.length;
+  $("#compteur").textContent = n > 100 ? `${n}/140` : "";
+});
 for (const [cle, s] of Object.entries(STYLES)) {
   const b = document.createElement("button");
   b.textContent = s.nom; b.setAttribute("aria-pressed", cle === styleChoisi);
   b.onclick = () => {
     styleChoisi = cle;
     document.querySelectorAll("#styles button").forEach(x => x.setAttribute("aria-pressed", x === b));
-    b.scrollIntoView({ block: "nearest", inline: "nearest" });
     rafraichir();
   };
   $("#styles").appendChild(b);
@@ -550,7 +584,6 @@ for (const [cle, s] of Object.entries(STYLES)) {
 }
 function ouvrirConfig() {
   aller("config"); majAge();
-  $("#styles [aria-pressed=true]").scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 // ---------- Selfie ----------
@@ -659,7 +692,7 @@ $("#partager").onclick = async () => {
   try { await navigator.share({ files: [fichier], title: "Les 40 ans d'Auré", text: "Les 40 ans d'Auré · 24 octobre 2026 🎉" }); }
   catch (e) { /* partage annulé */ }
 };
-$("#encore").onclick = () => { selfie = null; $("#prenom").value = ""; aller("selfie"); demarrerCamera(); };
+$("#encore").onclick = () => { selfie = null; $("#prenom").value = ""; $("#mot").value = ""; $("#compteur").textContent = ""; aller("selfie"); demarrerCamera(); };
 
 // Les polices doivent être chargées avant de dessiner dans le canvas
 Promise.all(["800 40px Fraunces", "700 40px Caveat"].map(f => document.fonts.load(f))).then(rafraichir, rafraichir);
