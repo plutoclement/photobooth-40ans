@@ -27,7 +27,9 @@
   html, body { min-height: 100%; }
   body { background: var(--bg); color: var(--ink); font-family: var(--serif); -webkit-tap-highlight-color: transparent; }
   main { width: min(520px, 100%); margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); }
-  .ecran { display: none; flex-direction: column; gap: 16px; min-height: calc(100svh - 36px); }
+  /* --h : hauteur réellement visible, mesurée en JavaScript (les barres des navigateurs mobiles faussent 100svh) */
+  :root { --marges: calc(max(16px, env(safe-area-inset-top)) + max(20px, env(safe-area-inset-bottom))); }
+  .ecran { display: none; flex-direction: column; gap: 16px; min-height: calc(var(--h, 100svh) - var(--marges)); }
   .ecran.on { display: flex; }
 
   h1 { font-weight: 800; font-size: clamp(2.2rem, 11vw, 3.4rem); line-height: .95; letter-spacing: -.03em; color: var(--accent); }
@@ -38,7 +40,8 @@
   .etapes li { display: flex; gap: 12px; align-items: center; font-size: 1.05rem; }
   .etapes b { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--bg);
               display: grid; place-items: center; font-weight: 800; }
-  .accueil-visage { width: 62%; max-width: 260px; aspect-ratio: 1; border-radius: 50%; border: 5px solid var(--paper);
+  /* La photo d'accueil prend la place restante : le bouton « C'est parti » reste toujours visible */
+  .accueil-visage { width: clamp(80px, calc(var(--h, 100svh) - 450px), 260px); max-width: 62%; aspect-ratio: 1; border-radius: 50%; border: 5px solid var(--paper);
                     align-self: center; object-fit: cover; box-shadow: 0 16px 40px rgba(0,0,0,.6); margin: 8px 0; }
 
   .bouton { font: inherit; font-weight: 800; font-size: 1.15rem; border: 0; border-radius: 999px; padding: 16px 22px;
@@ -63,7 +66,7 @@
   .declencheur:disabled { opacity: .4; }
   .lien { background: none; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; align-self: center; padding: 6px; }
 
-  #config.on { height: calc(100svh - max(16px, env(safe-area-inset-top)) - max(20px, env(safe-area-inset-bottom))); min-height: 0; gap: 12px; }
+  #config.on { height: calc(var(--h, 100svh) - var(--marges)); min-height: 0; gap: 12px; }
   .scene { flex: 1 1 0; min-height: 0; }
   .apercu { width: 100%; height: 100%; object-fit: contain; display: block; }
   .reglage { display: grid; gap: 6px; }
@@ -79,6 +82,11 @@
   textarea { resize: none; display: block; line-height: 1.3; }
   .champ { position: relative; }
   .compteur { position: absolute; right: 12px; top: -.6em; padding: 0 5px; background: var(--bg); font-size: .75rem; color: var(--muted); pointer-events: none; }
+  @media (max-height: 700px) {
+    #accueil { gap: 10px; }
+    #accueil h1 { font-size: clamp(1.9rem, 9vw, 2.6rem); }
+    .etapes { gap: 6px; }
+  }
   @media (max-height: 620px) {
     #config.on { gap: 7px; }
     .styles { gap: 5px; }
@@ -165,6 +173,27 @@
 
 <script>
 const $ = s => document.querySelector(s);
+
+// Hauteur réellement visible de l'écran (sans les barres du navigateur).
+// Ignorée pendant la saisie, pour que l'ouverture du clavier ne réduise pas la page.
+function mesurerHauteur() {
+  const saisie = document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && document.activeElement.type !== "range";
+  if (saisie) return;
+  const h = window.visualViewport ? visualViewport.height : innerHeight;
+  document.documentElement.style.setProperty("--h", Math.round(h) + "px");
+}
+mesurerHauteur();
+addEventListener("resize", mesurerHauteur);
+if (window.visualViewport) visualViewport.addEventListener("resize", mesurerHauteur);
+document.addEventListener("fullscreenchange", () => setTimeout(mesurerHauteur, 300));
+document.addEventListener("focusout", () => setTimeout(mesurerHauteur, 300));
+
+// Plein écran sur Android (Chrome, Firefox) ; non disponible sur iPhone, la page s'affiche alors normalement
+function pleinEcran() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen) return;
+  el.requestFullscreen({ navigationUI: "hide" }).catch(() => { /* refusé : on reste en affichage normal */ });
+}
 const ecrans = [...document.querySelectorAll(".ecran")];
 function aller(id) { ecrans.forEach(e => e.classList.toggle("on", e.id === id)); scrollTo(0, 0); }
 
@@ -638,7 +667,7 @@ $("#fichier").onchange = e => {
 };
 $("#refaire").onclick = demarrerCamera;
 $("#valider").onclick = () => { arreterCamera(); ouvrirConfig(); };
-$("#commencer").onclick = () => { aller("selfie"); demarrerCamera(); };
+$("#commencer").onclick = () => { pleinEcran(); aller("selfie"); demarrerCamera(); };
 
 // ---------- Création, envoi à l'album et partage ----------
 // Relais Cloudflare qui range les photos dans un dépôt GitHub privé (voir envoi_photos/ dans le projet).
