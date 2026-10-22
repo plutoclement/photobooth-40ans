@@ -477,6 +477,35 @@ const STYLES = {
       c.restore();
     },
   },
+  rallye: {
+    nom: "🏁 Pilote de rallye",
+    corps(c) {
+      // combinaison bleue à bandes, casque sous le bras, drapeau à damier
+      jambes(c, { pantalon: "#1f4fa3", chaussure: "#1d1d1d" });
+      for (const x of [228, 308]) { c.fillStyle = "#f2b33d"; c.fillRect(x + 24, 606, 16, 212); }
+      torse(c, "#1f4fa3", 0, () => {
+        c.fillStyle = "#f2b33d"; c.fillRect(150, 470, 300, 22);
+        c.fillStyle = "#fbf6ee"; c.fillRect(150, 492, 300, 10);
+      });
+      forme(c, "#fbf6ee", () => rect(c, 334, 410, 70, 40, 8), 4);
+      c.font = "800 30px Fraunces, Georgia, serif"; c.textAlign = "center"; c.fillStyle = "#c8102e"; c.fillText("40", 369, 441);
+      forme(c, "#c8102e", () => rect(c, 196, 530, 72, 28, 6), 4);
+      forme(c, "#1d1d1d", () => { c.moveTo(270, 366); c.lineTo(330, 366); c.lineTo(326, 392); c.lineTo(274, 392); c.closePath(); }, 4);
+      // drapeau à damier levé
+      bras(c, [408, 405], [478, 392], [462, 300], "#1f4fa3");
+      c.lineCap = "round"; c.lineWidth = 8; c.strokeStyle = T; c.beginPath(); c.moveTo(462, 330); c.lineTo(470, 120); c.stroke();
+      c.save(); c.translate(470, 124); c.rotate(.12);
+      c.beginPath(); rect(c, 0, 0, 104, 78, 4); c.save(); c.clip();
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { c.fillStyle = (i + j) % 2 ? "#1d1d1d" : "#fbf6ee"; c.fillRect(i * 18, j * 20, 18, 20); }
+      c.restore(); c.lineWidth = 5; c.strokeStyle = T; c.stroke(); c.restore();
+      main_(c, 462, 300);
+      // casque sous le bras
+      forme(c, "#fbf6ee", () => ovale(c, 150, 560, 70, 64));
+      c.fillStyle = "#c8102e"; c.beginPath(); c.moveTo(82, 548); c.quadraticCurveTo(150, 520, 218, 548); c.lineTo(218, 566); c.quadraticCurveTo(150, 540, 82, 566); c.fill();
+      forme(c, "#2b3a55", () => { c.moveTo(150, 538); c.quadraticCurveTo(210, 540, 214, 586); c.quadraticCurveTo(180, 600, 150, 592); c.closePath(); }, 4);
+      bras(c, [192, 405], [150, 490], [196, 560], "#1f4fa3");
+    },
+  },
 };
 
 // ---------- Composition finale 1080 × 1350 ----------
